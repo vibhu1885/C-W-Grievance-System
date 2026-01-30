@@ -1,5 +1,6 @@
 import streamlit as st
 from fpdf import FPDF
+import pandas as pd
 import re
 import os
 import io
@@ -13,7 +14,6 @@ def load_custom_data():
     }
     if not os.path.exists("data.txt"):
         return data_map
-
     current_section = None
     try:
         with open("data.txt", "r", encoding="utf-8-sig") as f:
@@ -36,66 +36,75 @@ def load_custom_data():
 
 data = load_custom_data()
 
-# --- 2. VIBRANT RAILWAY THEME & HORIZONTAL LAYOUT ---
+# --- 2. PROFESSIONAL DARK THEME (HIGH VISIBILITY) ---
 st.set_page_config(page_title="CWA Grievance System", layout="wide")
 
 st.markdown("""
     <style>
-    /* Gradient Background */
-    .stApp { background: linear-gradient(135deg, #003366 0%, #0066cc 100%); }
+    /* Dark Command Center Background */
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+    }
     
-    /* Global White Box Sections */
-    .white-section {
-        background-color: #ffffff;
+    /* Login & Form Containers */
+    .stForm {
+        background-color: #161b22;
         padding: 30px;
         border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        margin-bottom: 25px;
+        border: 1px solid #30363d;
     }
 
-    /* Horizontal Label Styling */
-    .row-container {
-        display: flex;
-        align-items: center;
-        margin-bottom: 15px;
-    }
+    /* Input Field Labels - Railway Gold for Visibility */
     label {
-        color: #003366 !important;
-        font-weight: 900 !important;
-        font-size: 1.1rem !important;
-        min-width: 200px; /* Forces labels to take equal space */
-        margin-bottom: 0px !important;
+        color: #ffcc00 !important;
+        font-weight: 800 !important;
+        font-size: 1.2rem !important;
+        margin-bottom: 5px !important;
     }
 
-    /* Force Pure White Text Boxes & Dropdowns */
+    /* Force Pure White Text Boxes for Data Entry */
     input, div[data-baseweb="select"] > div, textarea {
         background-color: #ffffff !important;
         color: #000000 !important;
-        border: 2px solid #003366 !important;
-        border-radius: 5px !important;
+        border: 2px solid #ffcc00 !important;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
     }
 
-    /* Make Dropdown Arrow Visible */
-    svg[title="open"] { fill: #003366 !important; scale: 1.5; }
-
-    /* Header Styling */
-    .header-box {
-        text-align: center;
-        background-color: white;
-        padding: 15px;
-        border-radius: 15px;
-        margin-bottom: 30px;
-        border-bottom: 5px solid #ffcc00; /* Railway Yellow */
-    }
-    .section-title {
-        background-color: #ffcc00;
-        color: #003366;
-        padding: 5px 15px;
+    /* Section Headers */
+    .section-header {
+        color: #ffffff;
+        font-size: 1.8rem;
         font-weight: 900;
-        border-radius: 5px;
-        display: inline-block;
-        margin-bottom: 10px;
+        border-bottom: 3px solid #ffcc00;
+        margin-bottom: 25px;
+        padding-bottom: 5px;
     }
+
+    /* Indian Railways Blue Header Box */
+    .header-container {
+        background-color: #003366;
+        padding: 20px;
+        border-radius: 15px;
+        border-bottom: 5px solid #ffcc00;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    /* Buttons */
+    .stButton>button {
+        background-color: #ffcc00;
+        color: #000000;
+        font-weight: bold;
+        border-radius: 10px;
+        width: 100%;
+        height: 3em;
+        font-size: 1.1rem;
+    }
+    
+    /* Dropdown Arrow Visibility */
+    svg[title="open"] { fill: #000000 !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -104,5 +113,11 @@ if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
 if not st.session_state["authenticated"]:
-    _, col_mid, _ = st.columns([1, 1, 1])
+    _, col_mid, _ = st.columns([1, 1.2, 1])
     with col_mid:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.image("https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Indian_Railways_NS_Logo.svg/1200px-Indian_Railways_NS_Logo.svg.png", width=120)
+        st.markdown("<h1 style='text-align: center; color: #ffcc00;'>SYSTEM LOGIN</h1>", unsafe_allow_html=True)
+        login_id = st.text_input("Enter Password (HRMS ID)", type="password").upper().strip()
+        if st.button("ENTER"):
+            clean_login = re.sub(r'[^A-
