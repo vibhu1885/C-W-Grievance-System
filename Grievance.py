@@ -1,5 +1,7 @@
 import streamlit as st
-from fpdf import FPDF
+from docx import Document
+from docx.shared import Inches, Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 import re
 import os
 import io
@@ -71,63 +73,72 @@ if not st.session_state["authenticated"]:
             else: st.error("Invalid ID")
     st.stop()
 
-# --- 4. THE ULTIMATE HINDI PDF LOGIC ---
-def generate_official_pdf(form_data, user_name, grievance_id):
-    # Initialize FPDF with Harfbuzz shaping enabled
-    pdf = FPDF(orientation='P', unit='mm', format='A4')
+# --- 4. WORD DOCUMENT LOGIC ---
+def generate_official_docx(form_data, user_name, grievance_id):
+    doc = Document()
     
-    try:
-        pdf.set_shaper("harfbuzz") # Required for Hindi ligatures
-    except Exception as e:
-        st.warning(f"Shaper Warning: {e}. Check uharfbuzz installation.")
-
-    pdf.set_margins(left=20, top=20, right=20)
-    pdf.add_page()
+    # 1. Header with Logo and ID
+    section = doc.sections[0]
+    header = section.header
+    htable = header.add_table(1, 2, Inches(6))
+    htab_cells = htable.rows[0].cells
     
-    # We will try 'Mangal.ttf' if Utsaah fails, but sticking to your 'utsaah.ttf'
-    font_path = "utsaah.ttf"
-    if not os.path.exists(font_path):
-        st.error("utsaah.ttf missing!")
-        return None
-
-    # Load font as Unicode (TrueType)
-    pdf.add_font('HindiFont', '', font_path)
-    pdf.set_font('HindiFont', '', 22)
-
+    # Add Logo to Header
     if os.path.exists("logo.png"):
-        pdf.image("logo.png", 10, 8, 25)
+        run = htab_cells[0].paragraphs[0].add_run()
+        run.add_picture("logo.png", width=Inches(0.8))
+    
+    # Add Grievance ID to Header
+    id_para = htab_cells[1].paragraphs[0]
+    id_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    id_run = id_para.add_run(f"Ref ID: {grievance_id}")
+    id_run.font.bold = True
+    id_run.font.size = Pt(10)
 
-    width = pdf.w - 40
-    pdf.set_font('Arial', 'B', 10)
-    pdf.cell(width, 5, f"Ref: {grievance_id}", ln=True, align='R')
+    # 2. Main Titles
+    title = doc.add_heading('उत्तर रेलवे - कैरिज वर्कशॉप आलमाग', 0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    pdf.set_font('HindiFont', '', 22)
-    # The shaper will now process 'उत्तर' and correctly combine 'त्त'
-    pdf.cell(width, 10, "उत्तर रेलवे - कैरिज वर्कशॉप आलमाग", ln=True, align='C')
-    pdf.set_font('HindiFont', '', 14)
-    pdf.cell(width, 8, "Grievance Redressal Management System", ln=True, align='C')
-    pdf.ln(12)
+    subtitle = doc.add_paragraph('Grievance Redressal Management System')
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    subtitle.runs[0].font.size = Pt(14)
     
-    content = [
-        f"Grievance दिनांक: {form_data['date']}",
-        f"नाम: {form_data['name']} ({form_data['hrms']})",
-        f"पद: {form_data['desig']} | ट्रेड: {form_data['trade']}",
-        f"Employee Number: {form_data['emp_no']} | सेक्शन: {form_data['section']}",
-        "--------------------------------------------------------------------------------",
-        f"Grievance प्रकार: {form_data['type']}",
-        f"संबंधित अधिकारी (To): {form_data['y']}",
-        f"पत्र जारीकर्ता अधिकारी (By): {form_data['z']}",
-        f"\nविवरण: {form_data['detail']}"
-    ]
+    doc.add_paragraph("_" * 50).alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # 3. Content Table (For clean alignment)
+    table = doc.add_table(rows=0, cols=2)
     
-    for line in content:
-        # multi_cell with harfbuzz shaper will handle all conjuncts/matras
-        pdf.multi_cell(width, 9, line)
-    
-    pdf.ln(20)
-    pdf.cell(width, 10, f"Employee/ Officer registering grievance: {user_name}", ln=True, align='R')
-    
-    return bytes(pdf.output())
+    def add_row(label, value):
+        row_cells = table.add_row().cells
+        row_cells[0].text = label
+        row_cells[1].text = str(value)
+        row_cells[0].paragraphs[0].runs[0].font.bold = True
+
+    add_row("Grievance दिनांक:", form_data['date'])
+    add_row("कर्मचारी का नाम:", form_data['name'])
+    add_row("HRMS ID:", form_data['hrms'])
+    add_row("पद:", form_data['desig'])
+    add_row("ट्रेड:", form_data['trade'])
+    add_row("Employee No:", form_data['emp_no'])
+    add_row("सेक्शन:", form_data['section'])
+    add_row("Grievance प्रकार:", form_data['type'])
+    add_row("संबंधित अधिकारी (To):", form_data['y'])
+    add_row("जारीकर्ता अधिकारी (By):", form_data['z'])
+
+    doc.add_paragraph("\nविवरण (Detailed Grievance):").runs[0].font.bold = True
+    doc.add_paragraph(form_data['detail'])
+
+    # 4. Footer
+    doc.add_paragraph("\n" * 2)
+    footer_para = doc.add_paragraph(f"Employee/ Officer registering grievance: {user_name}")
+    footer_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    footer_para.runs[0].font.bold = True
+
+    # Save to BytesIO
+    target_stream = io.BytesIO()
+    doc.save(target_stream)
+    target_stream.seek(0)
+    return target_stream
 
 # --- 5. MAIN UI ---
 col_logo, col_title = st.columns([0.15, 0.85])
@@ -164,7 +175,7 @@ with st.form("main_form"):
     _, btn_col, _ = st.columns([1, 1, 1])
     with btn_col:
         if os.path.exists("button.png"): st.image("button.png", use_container_width=True)
-        submit = st.form_submit_button("GENERATE PDF")
+        submit = st.form_submit_button("GENERATE WORD FILE")
 
 if submit:
     if not emp_name or not hrm_id:
@@ -178,9 +189,9 @@ if submit:
             "type": g_type, "detail": g_detail, "y": auth_y, "z": auth_z
         }
         try:
-            pdf_bytes = generate_official_pdf(pdf_data, st.session_state["user_name"], g_id)
-            if pdf_bytes:
-                st.success(f"✅ Generated ID: {g_id}")
-                st.download_button("📥 Download PDF", pdf_bytes, f"Grievance_{hrm_id}.pdf", "application/pdf")
+            doc_bytes = generate_official_docx(pdf_data, st.session_state["user_name"], g_id)
+            st.success(f"✅ Generated ID: {g_id}")
+            file_name_clean = g_id.replace("/", "_")
+            st.download_button("📥 Download Word File", doc_bytes, f"{file_name_clean}.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
         except Exception as e:
             st.error(f"Error: {e}")
