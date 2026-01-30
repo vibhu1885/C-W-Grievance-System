@@ -87,7 +87,8 @@ def generate_official_pdf(form_data, user_name, grievance_id):
         return None
 
     pdf.add_font('HindiFont', '', font_path)
-    
+    pdf.set_font('HindiFont', '', 22)
+
     if os.path.exists("logo.png"):
         pdf.image("logo.png", 10, 8, 25)
 
@@ -169,7 +170,6 @@ if submit:
     if not emp_name or not hrm_id:
         st.error("Please fill Name and HRMS ID")
     else:
-        # NEW SYNTAX: CWM/Grievance/DESIGNATION/HRMS/
         g_id = f"CWM/Grievance/{emp_desig}/{hrm_id}/"
         
         pdf_data = {
@@ -179,10 +179,11 @@ if submit:
             "type": g_type, "detail": g_detail, "y": auth_y, "z": auth_z
         }
         try:
-            pdf_bytes = generate_official_pdf(pdf_data, st.session_state["user_name"], g_id)
-            if pdf_bytes:
+            # FIX: Ensure output is converted to bytes for Streamlit
+            pdf_raw = generate_official_pdf(pdf_data, st.session_state["user_name"], g_id)
+            if pdf_raw:
+                pdf_bytes = bytes(pdf_raw)
                 st.success(f"✅ Generated ID: {g_id}")
-                # Sanitizing filename for download (removing slashes)
                 file_name_clean = g_id.replace("/", "_")
                 st.download_button("📥 Download PDF", pdf_bytes, f"{file_name_clean}.pdf", "application/pdf")
         except Exception as e:
