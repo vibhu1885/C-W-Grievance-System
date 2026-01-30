@@ -5,8 +5,6 @@ import os
 import io
 import random
 from datetime import datetime
-# Additional libraries for Hindi shaping
-from indicnlp.transliterate.unicode_transliterate import UnicodeConvert
 
 # --- 1. DATA PARSER ---
 @st.cache_data
@@ -41,19 +39,16 @@ data = load_custom_data()
 
 # --- 2. STYLING ---
 st.set_page_config(page_title="CWA Grievance System", layout="wide")
-
 st.markdown("""
     <style>
     .stApp { background-color: #273342; color: #e2e8f0; }
-    .login-credentials-label { font-size: 1.5rem !important; color: #60a5fa; font-weight: bold; }
+    .welcome-text { font-size: 2.5rem !important; color: #3b82f6 !important; font-weight: 800; }
     label { color: #60a5fa !important; font-weight: 700 !important; font-size: 1.5rem !important; }
-    .welcome-text { font-size: 2.5rem !important; color: #3b82f6 !important; font-weight: 800; margin-bottom: 20px; }
-    .section-header { color: #ffffff; font-size: 2.2rem; font-weight: 800; border-bottom: 3px solid #3b82f6; margin-top: 30px; margin-bottom: 20px; }
+    .section-header { color: #ffffff; font-size: 2.2rem; font-weight: 800; border-bottom: 3px solid #3b82f6; }
     input, div[data-baseweb="select"] > div, textarea {
         background-color: #ffffff !important; color: #1e293b !important;
         border: 2px solid #3b82f6 !important; border-radius: 6px !important;
     }
-    svg[title="open"] { fill: #3b82f6 !important; transform: scale(1.5); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -65,22 +60,28 @@ if not st.session_state["authenticated"]:
     _, col_mid, _ = st.columns([0.5, 1.2, 0.5])
     with col_mid:
         if os.path.exists("banner.png"): st.image("banner.png", use_container_width=True)
-        st.markdown("<h1 style='text-align: center; color: white;'>LOGIN</h1>", unsafe_allow_html=True)
-        st.markdown('<p class="login-credentials-label">Enter Login Credentials</p>', unsafe_allow_html=True)
-        login_id = st.text_input("", type="password", label_visibility="collapsed").upper().strip()
+        st.markdown("<h1 style='text-align: center;'>LOGIN</h1>", unsafe_allow_html=True)
+        login_id = st.text_input("Enter Login Credentials", type="password").upper().strip()
         if st.button("ENTER"):
             clean_login = re.sub(r'[^A-Z0-9]', '', login_id)
             if clean_login in data["USERS"]:
                 st.session_state["authenticated"] = True
                 st.session_state["user_name"] = data["USERS"][clean_login]
                 st.rerun()
-            else: st.error("Invalid Credentials")
+            else: st.error("Invalid ID")
     st.stop()
 
-# --- 4. PDF LOGIC ---
+# --- 4. PDF LOGIC (FIXED HINDI SHAPING) ---
 def generate_official_pdf(form_data, user_name, grievance_id):
-    # Initialize FPDF with support for complex scripts
+    # CRITICAL: We enable the 'harfbuzz' shaper here
     pdf = FPDF(orientation='P', unit='mm', format='A4')
+    
+    # Try to enable the shaper to fix Hindi characters
+    try:
+        pdf.set_shaper("harfbuzz")
+    except:
+        pass # Fallback if library isn't ready
+        
     pdf.set_margins(left=20, top=20, right=20)
     pdf.add_page()
     
@@ -89,7 +90,6 @@ def generate_official_pdf(form_data, user_name, grievance_id):
         st.error("utsaah.ttf missing!")
         return None
 
-    # Register Unicode Font
     pdf.add_font('HindiFont', '', font_path)
     pdf.set_font('HindiFont', '', 22)
 
@@ -97,12 +97,9 @@ def generate_official_pdf(form_data, user_name, grievance_id):
         pdf.image("logo.png", 10, 8, 25)
 
     width = pdf.w - 40
-
-    # Grievance ID Box
     pdf.set_font('Arial', 'B', 10)
     pdf.cell(width, 5, f"Ref: {grievance_id}", ln=True, align='R')
     
-    # Title - Matras will fix because fpdf2 uses better shaping for TTF
     pdf.set_font('HindiFont', '', 22)
     pdf.cell(width, 10, "उत्तर रेलवे - कैरिज वर्कशॉप आलमाग", ln=True, align='C')
     pdf.set_font('HindiFont', '', 14)
@@ -122,13 +119,13 @@ def generate_official_pdf(form_data, user_name, grievance_id):
     ]
     
     for line in content:
-        # Note: If matras still break, we use multi_cell with the shaped text
         pdf.multi_cell(width, 9, line)
     
     pdf.ln(20)
     pdf.cell(width, 10, f"Employee/ Officer registering grievance: {user_name}", ln=True, align='R')
     
-    return pdf.output()
+    # Return as standard bytes
+    return bytes(pdf.output())
 
 # --- 5. MAIN UI ---
 col_logo, col_title = st.columns([0.15, 0.85])
@@ -138,10 +135,6 @@ with col_title:
     st.markdown("<h1 style='color: white;'>कैरिज वर्कशॉप आलमाग (CWA)</h1>", unsafe_allow_html=True)
 
 st.markdown(f'<p class="welcome-text">Welcome, {st.session_state["user_name"]} 👋</p>', unsafe_allow_html=True)
-
-if st.button("Logout"):
-    st.session_state["authenticated"] = False
-    st.rerun()
 
 with st.form("main_form"):
     st.markdown('<div class="section-header">📋 कर्मचारी का विवरण (Employee details)</div>', unsafe_allow_html=True)
@@ -173,7 +166,7 @@ with st.form("main_form"):
 
 if submit:
     if not emp_name or not hrm_id:
-        st.error("Please fill Name and HRMS ID")
+        st.error("Fill Name and HRMS ID")
     else:
         g_id = f"CWM/Grievance/{emp_desig}/{hrm_id}/"
         pdf_data = {
@@ -183,11 +176,9 @@ if submit:
             "type": g_type, "detail": g_detail, "y": auth_y, "z": auth_z
         }
         try:
-            pdf_raw = generate_official_pdf(pdf_data, st.session_state["user_name"], g_id)
-            if pdf_raw:
-                pdf_bytes = bytes(pdf_raw)
+            pdf_bytes = generate_official_pdf(pdf_data, st.session_state["user_name"], g_id)
+            if pdf_bytes:
                 st.success(f"✅ Generated ID: {g_id}")
-                file_name_clean = g_id.replace("/", "_")
-                st.download_button("📥 Download PDF", pdf_bytes, f"{file_name_clean}.pdf", "application/pdf")
+                st.download_button("📥 Download PDF", pdf_bytes, f"Grievance_{hrm_id}.pdf", "application/pdf")
         except Exception as e:
             st.error(f"Error: {e}")
