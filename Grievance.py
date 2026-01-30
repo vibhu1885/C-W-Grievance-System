@@ -71,25 +71,26 @@ if not st.session_state["authenticated"]:
             else: st.error("Invalid ID")
     st.stop()
 
-# --- 4. PDF LOGIC (FIXED HINDI SHAPING) ---
+# --- 4. THE ULTIMATE HINDI PDF LOGIC ---
 def generate_official_pdf(form_data, user_name, grievance_id):
-    # CRITICAL: We enable the 'harfbuzz' shaper here
+    # Initialize FPDF with Harfbuzz shaping enabled
     pdf = FPDF(orientation='P', unit='mm', format='A4')
     
-    # Try to enable the shaper to fix Hindi characters
     try:
-        pdf.set_shaper("harfbuzz")
-    except:
-        pass # Fallback if library isn't ready
-        
+        pdf.set_shaper("harfbuzz") # Required for Hindi ligatures
+    except Exception as e:
+        st.warning(f"Shaper Warning: {e}. Check uharfbuzz installation.")
+
     pdf.set_margins(left=20, top=20, right=20)
     pdf.add_page()
     
+    # We will try 'Mangal.ttf' if Utsaah fails, but sticking to your 'utsaah.ttf'
     font_path = "utsaah.ttf"
     if not os.path.exists(font_path):
         st.error("utsaah.ttf missing!")
         return None
 
+    # Load font as Unicode (TrueType)
     pdf.add_font('HindiFont', '', font_path)
     pdf.set_font('HindiFont', '', 22)
 
@@ -101,6 +102,7 @@ def generate_official_pdf(form_data, user_name, grievance_id):
     pdf.cell(width, 5, f"Ref: {grievance_id}", ln=True, align='R')
     
     pdf.set_font('HindiFont', '', 22)
+    # The shaper will now process 'उत्तर' and correctly combine 'त्त'
     pdf.cell(width, 10, "उत्तर रेलवे - कैरिज वर्कशॉप आलमाग", ln=True, align='C')
     pdf.set_font('HindiFont', '', 14)
     pdf.cell(width, 8, "Grievance Redressal Management System", ln=True, align='C')
@@ -119,12 +121,12 @@ def generate_official_pdf(form_data, user_name, grievance_id):
     ]
     
     for line in content:
+        # multi_cell with harfbuzz shaper will handle all conjuncts/matras
         pdf.multi_cell(width, 9, line)
     
     pdf.ln(20)
     pdf.cell(width, 10, f"Employee/ Officer registering grievance: {user_name}", ln=True, align='R')
     
-    # Return as standard bytes
     return bytes(pdf.output())
 
 # --- 5. MAIN UI ---
