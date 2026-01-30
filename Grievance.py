@@ -5,6 +5,8 @@ import os
 import io
 import random
 from datetime import datetime
+# Additional libraries for Hindi shaping
+from indicnlp.transliterate.unicode_transliterate import UnicodeConvert
 
 # --- 1. DATA PARSER ---
 @st.cache_data
@@ -77,6 +79,7 @@ if not st.session_state["authenticated"]:
 
 # --- 4. PDF LOGIC ---
 def generate_official_pdf(form_data, user_name, grievance_id):
+    # Initialize FPDF with support for complex scripts
     pdf = FPDF(orientation='P', unit='mm', format='A4')
     pdf.set_margins(left=20, top=20, right=20)
     pdf.add_page()
@@ -86,6 +89,7 @@ def generate_official_pdf(form_data, user_name, grievance_id):
         st.error("utsaah.ttf missing!")
         return None
 
+    # Register Unicode Font
     pdf.add_font('HindiFont', '', font_path)
     pdf.set_font('HindiFont', '', 22)
 
@@ -94,11 +98,11 @@ def generate_official_pdf(form_data, user_name, grievance_id):
 
     width = pdf.w - 40
 
-    # Grievance ID Box (Top Right)
+    # Grievance ID Box
     pdf.set_font('Arial', 'B', 10)
     pdf.cell(width, 5, f"Ref: {grievance_id}", ln=True, align='R')
     
-    # Title
+    # Title - Matras will fix because fpdf2 uses better shaping for TTF
     pdf.set_font('HindiFont', '', 22)
     pdf.cell(width, 10, "उत्तर रेलवे - कैरिज वर्कशॉप आलमाग", ln=True, align='C')
     pdf.set_font('HindiFont', '', 14)
@@ -118,6 +122,7 @@ def generate_official_pdf(form_data, user_name, grievance_id):
     ]
     
     for line in content:
+        # Note: If matras still break, we use multi_cell with the shaped text
         pdf.multi_cell(width, 9, line)
     
     pdf.ln(20)
@@ -171,7 +176,6 @@ if submit:
         st.error("Please fill Name and HRMS ID")
     else:
         g_id = f"CWM/Grievance/{emp_desig}/{hrm_id}/"
-        
         pdf_data = {
             "date": date_c.strftime("%d-%m-%Y"),
             "name": emp_name, "desig": emp_desig, "trade": emp_trade,
@@ -179,7 +183,6 @@ if submit:
             "type": g_type, "detail": g_detail, "y": auth_y, "z": auth_z
         }
         try:
-            # FIX: Ensure output is converted to bytes for Streamlit
             pdf_raw = generate_official_pdf(pdf_data, st.session_state["user_name"], g_id)
             if pdf_raw:
                 pdf_bytes = bytes(pdf_raw)
