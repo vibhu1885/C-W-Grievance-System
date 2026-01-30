@@ -3,6 +3,7 @@ from fpdf import FPDF
 import re
 import os
 import io
+from datetime import datetime
 
 # --- 1. SMART TEXT PARSER ---
 @st.cache_data
@@ -55,13 +56,6 @@ st.markdown("""
         border: 2px solid #3b82f6 !important; border-radius: 6px !important;
     }
     svg[title="open"] { fill: #3b82f6 !important; transform: scale(1.5); }
-
-    /* Custom Image Button Hover Effect */
-    .img-button:hover {
-        transform: scale(1.05);
-        cursor: pointer;
-        filter: brightness(1.1);
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -86,7 +80,52 @@ if not st.session_state["authenticated"]:
             else: st.error("Invalid Credentials")
     st.stop()
 
-# --- 4. MAIN INTERFACE ---
+# --- 4. PDF GENERATION LOGIC ---
+def generate_official_pdf(form_data, user_name):
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Header Logo & Title
+    if os.path.exists("logo.png"):
+        pdf.image("logo.png", 10, 8, 25)
+    
+    # Hindi Font Registration
+    if os.path.exists("utsaah.ttf"):
+        pdf.add_font('Utsaah', '', 'utsaah.ttf', uni=True)
+        pdf.set_font('Utsaah', '', 20)
+    else:
+        pdf.set_font('Arial', 'B', 16)
+
+    pdf.cell(0, 10, "उत्तर रेलवे - कैरिज वर्कशॉप आलमाग", ln=True, align='C')
+    pdf.set_font('Utsaah', '', 14) if os.path.exists("utsaah.ttf") else pdf.set_font('Arial', '', 12)
+    pdf.cell(0, 10, "Grievance Redressal Management System", ln=True, align='C')
+    pdf.ln(15)
+    
+    # Table Content
+    content = [
+        ("Grievance दिनांक:", form_data['date']),
+        ("कर्मचारी का नाम:", form_data['name']),
+        ("पद:", form_data['desig']),
+        ("ट्रेड:", form_data['trade']),
+        ("Employee Number:", form_data['emp_no']),
+        ("HRMS ID:", form_data['hrms']),
+        ("सेक्शन:", form_data['section']),
+        ("-" * 30, ""),
+        ("Grievance प्रकार:", form_data['type']),
+        ("संबंधित अधिकारी (To):", form_data['y']),
+        ("जारीकर्ता अधिकारी (By):", form_data['z']),
+        ("\nविवरण:", form_data['detail'])
+    ]
+    
+    for label, val in content:
+        pdf.multi_cell(0, 10, f"{label} {val}")
+    
+    pdf.ln(20)
+    pdf.cell(0, 10, f"दर्जकर्ता: {user_name}", ln=True, align='R')
+    
+    return pdf.output(dest='S').encode('latin-1')
+
+# --- 5. MAIN INTERFACE ---
 col_logo, col_title = st.columns([0.15, 0.85])
 with col_logo:
     if os.path.exists("logo.png"):
@@ -124,15 +163,21 @@ with st.form("main_form"):
     
     g_detail = st.text_area("विवरण (Detailed Grievance)")
     
-    # Image Button Logic
     _, btn_col, _ = st.columns([1, 1, 1])
     with btn_col:
         if os.path.exists("button.png"):
             st.image("button.png", use_container_width=True)
-            st.markdown('<p style="text-align:center; color:#60a5fa;">Click the button below to confirm</p>', unsafe_allow_html=True)
-        
-        # We still need the actual submit button to process the form
         submit = st.form_submit_button("GENERATE PDF")
 
 if submit:
-    st.success("PDF processing started...")
+    if not emp_name or not hrms_id:
+        st.error("Please fill Name and HRMS ID")
+    else:
+        pdf_data = {
+            "date": date_c.strftime("%d-%m-%Y"),
+            "name": emp_name, "desig": emp_desig, "trade": emp_trade,
+            "emp_no": emp_no, "hrms": hrms_id, "section": section,
+            "type": g_type, "detail": g_detail, "y": auth_y, "z": auth_z
+        }
+        pdf_output = generate_official_pdf(pdf_data, st.session_state["user_name"])
+        st.download_button("📥 Click Here to Download PDF", pdf_output, f"Grievance_{hrms_id}.pdf", "application/pdf")
