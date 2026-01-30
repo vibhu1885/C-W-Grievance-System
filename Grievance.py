@@ -3,8 +3,10 @@ from fpdf import FPDF
 import re
 import os
 import io
+import random
+from datetime import datetime
 
-# --- 1. SMART TEXT PARSER ---
+# --- 1. DATA PARSER ---
 @st.cache_data
 def load_custom_data():
     data_map = {
@@ -13,21 +15,18 @@ def load_custom_data():
     }
     if not os.path.exists("data.txt"):
         return data_map
-
-    current_section = None
     try:
         with open("data.txt", "r", encoding="utf-8-sig") as f:
+            current_section = None
             for line in f:
                 clean_line = line.strip()
                 if not clean_line: continue
-                
                 if clean_line == "USER_LIST": current_section = "USERS"
                 elif clean_line == "DESIGNATIONS": current_section = "DESIG"
                 elif clean_line == "TRADES": current_section = "TRADE"
                 elif clean_line == "GRIEVANCE_TYPES": current_section = "G_TYPE"
                 elif clean_line == "AUTHORITIES_Y": current_section = "AUTH_Y"
                 elif clean_line == "AUTHORITIES_Z": current_section = "AUTH_Z"
-                
                 elif current_section == "USERS" and "," in clean_line:
                     uid, uname = clean_line.split(",", 1)
                     data_map["USERS"][uid.strip().upper()] = uname.strip()
@@ -38,7 +37,7 @@ def load_custom_data():
 
 data = load_custom_data()
 
-# --- 2. ENTERPRISE GREY THEME ---
+# --- 2. STYLING ---
 st.set_page_config(page_title="CWA Grievance System", layout="wide")
 
 st.markdown("""
@@ -56,15 +55,14 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. LOGIN INTERFACE ---
+# --- 3. LOGIN ---
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
 if not st.session_state["authenticated"]:
     _, col_mid, _ = st.columns([0.5, 1.2, 0.5])
     with col_mid:
-        if os.path.exists("banner.png"):
-            st.image("banner.png", use_container_width=True)
+        if os.path.exists("banner.png"): st.image("banner.png", use_container_width=True)
         st.markdown("<h1 style='text-align: center; color: white;'>LOGIN</h1>", unsafe_allow_html=True)
         st.markdown('<p class="login-credentials-label">Enter Login Credentials</p>', unsafe_allow_html=True)
         login_id = st.text_input("", type="password", label_visibility="collapsed").upper().strip()
@@ -77,68 +75,61 @@ if not st.session_state["authenticated"]:
             else: st.error("Invalid Credentials")
     st.stop()
 
-# --- 4. FIXED PDF LOGIC (FPDF2) ---
-def generate_official_pdf(form_data, user_name):
-    # Initialize FPDF2
-    pdf = FPDF()
+# --- 4. PDF LOGIC ---
+def generate_official_pdf(form_data, user_name, grievance_id):
+    pdf = FPDF(orientation='P', unit='mm', format='A4')
+    pdf.set_margins(left=20, top=20, right=20)
     pdf.add_page()
     
     font_path = "utsaah.ttf"
-    
-    # 1. STRICT FONT REGISTRATION
-    if os.path.exists(font_path):
-        # We register the font with the name 'HindiFont' to be explicit
-        pdf.add_font('HindiFont', '', font_path)
-        pdf.set_font('HindiFont', '', 20)
-    else:
-        # If the file is missing, we stop here to prevent the Helvetica crash
-        st.error(f"❌ Critical Error: '{font_path}' not found in repository. Please upload the font file.")
+    if not os.path.exists(font_path):
+        st.error("utsaah.ttf missing!")
         return None
 
-    # 2. PDF HEADER
+    pdf.add_font('HindiFont', '', font_path)
+    
     if os.path.exists("logo.png"):
         pdf.image("logo.png", 10, 8, 25)
+
+    width = pdf.w - 40
+
+    # Grievance ID Box (Top Right)
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(width, 5, f"Ref: {grievance_id}", ln=True, align='R')
     
-    pdf.cell(0, 10, "उत्तर रेलवे - कैरिज वर्कशॉप आलमाग", ln=True, align='C')
-    
+    # Title
+    pdf.set_font('HindiFont', '', 22)
+    pdf.cell(width, 10, "उत्तर रेलवे - कैरिज वर्कशॉप आलमाग", ln=True, align='C')
     pdf.set_font('HindiFont', '', 14)
-    pdf.cell(0, 10, "Grievance Redressal Management System", ln=True, align='C')
-    pdf.ln(15)
+    pdf.cell(width, 8, "Grievance Redressal Management System", ln=True, align='C')
+    pdf.ln(12)
     
-    # 3. BODY CONTENT
-    # Every string here MUST use 'HindiFont'
     content = [
         f"Grievance दिनांक: {form_data['date']}",
-        f"कर्मचारी का नाम: {form_data['name']}",
-        f"पद: {form_data['desig']}",
-        f"ट्रेड: {form_data['trade']}",
-        f"Employee Number: {form_data['emp_no']}",
-        f"HRMS ID: {form_data['hrms']}",
-        f"सेक्शन: {form_data['section']}",
-        "--------------------------------------------------",
+        f"नाम: {form_data['name']} ({form_data['hrms']})",
+        f"पद: {form_data['desig']} | ट्रेड: {form_data['trade']}",
+        f"Employee Number: {form_data['emp_no']} | सेक्शन: {form_data['section']}",
+        "--------------------------------------------------------------------------------",
         f"Grievance प्रकार: {form_data['type']}",
-        f"संबंधित अधिकारी (Letter To): {form_data['y']}",
-        f"पत्र जारीकर्ता अधिकारी (Letter By): {form_data['z']}",
+        f"संबंधित अधिकारी (To): {form_data['y']}",
+        f"पत्र जारीकर्ता अधिकारी (By): {form_data['z']}",
         f"\nविवरण: {form_data['detail']}"
     ]
     
     for line in content:
-        # multi_cell will now use HindiFont for every character
-        pdf.multi_cell(0, 10, line)
+        pdf.multi_cell(width, 9, line)
     
     pdf.ln(20)
-    pdf.cell(0, 10, f"दर्जकर्ता: {user_name}", ln=True, align='R')
+    pdf.cell(width, 10, f"Employee/ Officer registering grievance: {user_name}", ln=True, align='R')
     
     return pdf.output()
 
-# --- 5. MAIN INTERFACE ---
+# --- 5. MAIN UI ---
 col_logo, col_title = st.columns([0.15, 0.85])
 with col_logo:
-    if os.path.exists("logo.png"):
-        st.image("logo.png", width=120)
+    if os.path.exists("logo.png"): st.image("logo.png", width=120)
 with col_title:
-    st.markdown("<h1 style='color: white; margin-top: 10px;'>कैरिज वर्कशॉप आलमाग (CWA)</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #60a5fa; font-size: 1.5rem;'>Grievance Redressal Management System</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='color: white;'>कैरिज वर्कशॉप आलमाग (CWA)</h1>", unsafe_allow_html=True)
 
 st.markdown(f'<p class="welcome-text">Welcome, {st.session_state["user_name"]} 👋</p>', unsafe_allow_html=True)
 
@@ -155,7 +146,7 @@ with st.form("main_form"):
         emp_trade = st.selectbox("3. कर्मचारी का ट्रेड", data["TRADE"])
     with c2:
         emp_no = st.text_input("4. Employee Number")
-        hrms_id = st.text_input("5. HRMS ID", max_chars=6).upper()
+        hrm_id = st.text_input("5. HRMS ID", max_chars=6).upper()
         section = st.text_input("6. सेक्शन")
 
     st.markdown('<div class="section-header">📝 समस्या विवरण (Grievance)</div>', unsafe_allow_html=True)
@@ -171,24 +162,28 @@ with st.form("main_form"):
     
     _, btn_col, _ = st.columns([1, 1, 1])
     with btn_col:
-        if os.path.exists("button.png"):
-            st.image("button.png", use_container_width=True)
+        if os.path.exists("button.png"): st.image("button.png", use_container_width=True)
         submit = st.form_submit_button("GENERATE PDF")
 
 if submit:
-    if not emp_name or not hrms_id:
+    if not emp_name or not hrm_id:
         st.error("Please fill Name and HRMS ID")
     else:
+        # NEW SYNTAX: CWM/Grievance/DESIGNATION/HRMS/
+        g_id = f"CWM/Grievance/{emp_desig}/{hrm_id}/"
+        
         pdf_data = {
             "date": date_c.strftime("%d-%m-%Y"),
             "name": emp_name, "desig": emp_desig, "trade": emp_trade,
-            "emp_no": emp_no, "hrms": hrms_id, "section": section,
+            "emp_no": emp_no, "hrms": hrm_id, "section": section,
             "type": g_type, "detail": g_detail, "y": auth_y, "z": auth_z
         }
         try:
-            pdf_bytes = generate_official_pdf(pdf_data, st.session_state["user_name"])
-            st.success("✅ PDF तैयार है!")
-            st.download_button("📥 Click Here to Download PDF", pdf_bytes, f"Grievance_{hrms_id}.pdf", "application/pdf")
+            pdf_bytes = generate_official_pdf(pdf_data, st.session_state["user_name"], g_id)
+            if pdf_bytes:
+                st.success(f"✅ Generated ID: {g_id}")
+                # Sanitizing filename for download (removing slashes)
+                file_name_clean = g_id.replace("/", "_")
+                st.download_button("📥 Download PDF", pdf_bytes, f"{file_name_clean}.pdf", "application/pdf")
         except Exception as e:
-            st.error(f"PDF Error: {e}")
-
+            st.error(f"Error: {e}")
