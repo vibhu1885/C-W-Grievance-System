@@ -85,45 +85,54 @@ def generate_official_pdf(form_data, user_name):
     pdf = FPDF()
     pdf.add_page()
     
-    # Header Logo & Title
+    # Header Logo
     if os.path.exists("logo.png"):
         pdf.image("logo.png", 10, 8, 25)
     
     # Hindi Font Registration
     if os.path.exists("utsaah.ttf"):
-        pdf.add_font('Utsaah', '', 'utsaah.ttf', uni=True)
+        pdf.add_font('Utsaah', '', 'utsaah.ttf')
         pdf.set_font('Utsaah', '', 20)
     else:
         pdf.set_font('Arial', 'B', 16)
 
+    # Title
     pdf.cell(0, 10, "उत्तर रेलवे - कैरिज वर्कशॉप आलमाग", ln=True, align='C')
-    pdf.set_font('Utsaah', '', 14) if os.path.exists("utsaah.ttf") else pdf.set_font('Arial', '', 12)
+    
+    # Reset font for body
+    if os.path.exists("utsaah.ttf"):
+        pdf.set_font('Utsaah', '', 14)
+    else:
+        pdf.set_font('Arial', '', 12)
+        
     pdf.cell(0, 10, "Grievance Redressal Management System", ln=True, align='C')
     pdf.ln(15)
     
-    # Table Content
+    # Body Content
+    # Note: multi_cell handles unicode perfectly as long as the font is loaded
     content = [
-        ("Grievance दिनांक:", form_data['date']),
-        ("कर्मचारी का नाम:", form_data['name']),
-        ("पद:", form_data['desig']),
-        ("ट्रेड:", form_data['trade']),
-        ("Employee Number:", form_data['emp_no']),
-        ("HRMS ID:", form_data['hrms']),
-        ("सेक्शन:", form_data['section']),
-        ("-" * 30, ""),
-        ("Grievance प्रकार:", form_data['type']),
-        ("संबंधित अधिकारी (To):", form_data['y']),
-        ("जारीकर्ता अधिकारी (By):", form_data['z']),
-        ("\nविवरण:", form_data['detail'])
+        f"Grievance दिनांक: {form_data['date']}",
+        f"कर्मचारी का नाम: {form_data['name']}",
+        f"पद: {form_data['desig']}",
+        f"ट्रेड: {form_data['trade']}",
+        f"Employee Number: {form_data['emp_no']}",
+        f"HRMS ID: {form_data['hrms']}",
+        f"सेक्शन: {form_data['section']}",
+        "--------------------------------------------------",
+        f"Grievance प्रकार: {form_data['type']}",
+        f"संबंधित अधिकारी (Letter To): {form_data['y']}",
+        f"पत्र जारीकर्ता अधिकारी (Letter By): {form_data['z']}",
+        f"\nविवरण: {form_data['detail']}"
     ]
     
-    for label, val in content:
-        pdf.multi_cell(0, 10, f"{label} {val}")
+    for line in content:
+        pdf.multi_cell(0, 10, line)
     
     pdf.ln(20)
     pdf.cell(0, 10, f"दर्जकर्ता: {user_name}", ln=True, align='R')
     
-    return pdf.output(dest='S').encode('latin-1')
+    # THE FIX: Return the bytes directly
+    return pdf.output()
 
 # --- 5. MAIN INTERFACE ---
 col_logo, col_title = st.columns([0.15, 0.85])
@@ -181,3 +190,4 @@ if submit:
         }
         pdf_output = generate_official_pdf(pdf_data, st.session_state["user_name"])
         st.download_button("📥 Click Here to Download PDF", pdf_output, f"Grievance_{hrms_id}.pdf", "application/pdf")
+
