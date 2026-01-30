@@ -13,33 +13,32 @@ def load_custom_data():
     }
     
     if not os.path.exists("data.txt"):
-        st.error("data.txt not found! Please create it in your repository.")
         return data_map
 
     current_section = None
-    try:
-        with open("data.txt", "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line: continue
-                
-                # Detect Headers (Must match these exactly in data.txt)
-                if line == "USER_LIST": current_section = "USERS"
-                elif line == "DESIGNATIONS": current_section = "DESIG"
-                elif line == "TRADES": current_section = "TRADE"
-                elif line == "GRIEVANCE_TYPES": current_section = "G_TYPE"
-                elif line == "AUTHORITIES_Y": current_section = "AUTH_Y"
-                elif line == "AUTHORITIES_Z": current_section = "AUTH_Z"
-                
-                # Add data to the correct section
-                elif current_section == "USERS":
-                    if "," in line:
-                        uid, uname = line.split(",", 1)
-                        data_map["USERS"][uid.strip().upper()] = uname.strip()
-                elif current_section:
-                    data_map[current_section].append(line)
-    except Exception as e:
-        st.error(f"Error reading data.txt: {e}")
+    # 'utf-8-sig' automatically removes invisible BOM characters from the start of the file
+    with open("data.txt", "r", encoding="utf-8-sig") as f:
+        for line in f:
+            # .strip() removes spaces AND hidden newline characters (\n, \r)
+            clean_line = line.strip() 
+            if not clean_line: continue
+            
+            # Detect Headers - use .upper() to be safe
+            header_check = clean_line.upper()
+            if header_check == "USER_LIST": current_section = "USERS"
+            elif header_check == "DESIGNATIONS": current_section = "DESIG"
+            elif header_check == "TRADES": current_section = "TRADE"
+            elif header_check == "GRIEVANCE_TYPES": current_section = "G_TYPE"
+            elif header_check == "AUTHORITIES_Y": current_section = "AUTH_Y"
+            elif header_check == "AUTHORITIES_Z": current_section = "AUTH_Z"
+            
+            elif current_section == "USERS":
+                if "," in clean_line:
+                    uid, uname = clean_line.split(",", 1)
+                    # We use .strip() on both to be 100% sure
+                    data_map["USERS"][uid.strip().upper()] = uname.strip()
+            elif current_section:
+                data_map[current_section].append(clean_line)
                 
     return data_map
 
@@ -181,3 +180,4 @@ with st.form("main_form"):
             pdf_bytes = create_pdf(final_data, st.session_state['user_name'])
             st.success("✅ PDF Generated!")
             st.download_button("Download Letter", pdf_bytes, f"Grievance_{hrms_id}.pdf", "application/pdf")
+
