@@ -1,6 +1,4 @@
 streamlit
 fpdf2
+uharfbuzz
 pandas
-indic-nlp-library
-fonttools
-
