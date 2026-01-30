@@ -20,14 +20,12 @@ def load_custom_data():
             for line in f:
                 clean_line = line.strip()
                 if not clean_line: continue
-                
                 if clean_line == "USER_LIST": current_section = "USERS"
                 elif clean_line == "DESIGNATIONS": current_section = "DESIG"
                 elif clean_line == "TRADES": current_section = "TRADE"
                 elif clean_line == "GRIEVANCE_TYPES": current_section = "G_TYPE"
                 elif clean_line == "AUTHORITIES_Y": current_section = "AUTH_Y"
                 elif clean_line == "AUTHORITIES_Z": current_section = "AUTH_Z"
-                
                 elif current_section == "USERS" and "," in clean_line:
                     uid, uname = clean_line.split(",", 1)
                     data_map["USERS"][uid.strip().upper()] = uname.strip()
@@ -38,83 +36,31 @@ def load_custom_data():
 
 data = load_custom_data()
 
-# --- 2. ENTERPRISE GREY THEME & FONT SCALING ---
+# --- 2. THEME & IMAGE BUTTON CSS ---
 st.set_page_config(page_title="CWA Grievance System", layout="wide")
 
 st.markdown("""
     <style>
-    /* Professional Slate Grey Background */
-    .stApp {
-        background-color: #273342;
-        color: #e2e8f0;
-    }
+    .stApp { background-color: #273342; color: #e2e8f0; }
     
-    /* Login Styling */
-    .login-credentials-label {
-        font-size: 1.5rem !important; /* 50% bigger than standard 1rem */
-        color: #60a5fa;
-        font-weight: bold;
-        margin-bottom: 10px;
-    }
+    /* Font Scaling */
+    .login-credentials-label { font-size: 1.5rem !important; color: #60a5fa; font-weight: bold; }
+    label { color: #60a5fa !important; font-weight: 700 !important; font-size: 1.5rem !important; }
+    .welcome-text { font-size: 2.5rem !important; color: #3b82f6 !important; font-weight: 800; margin-bottom: 20px; }
+    .section-header { color: #ffffff; font-size: 2.2rem; font-weight: 800; border-bottom: 3px solid #3b82f6; margin-top: 30px; margin-bottom: 20px; }
 
-    /* Input Field Labels - 50% Bigger */
-    label {
-        color: #60a5fa !important;
-        font-weight: 700 !important;
-        font-size: 1.5rem !important; /* 50% bigger */
-        margin-bottom: 8px !important;
-    }
-
-    /* Welcome Message - 200% Bigger & Blue */
-    .welcome-text {
-        font-size: 2.5rem !important;
-        color: #3b82f6 !important;
-        font-weight: 800;
-        margin-bottom: 20px;
-    }
-
-    /* Polished Dropdowns & Text Boxes */
+    /* Input Styling */
     input, div[data-baseweb="select"] > div, textarea {
-        background-color: #ffffff !important;
-        color: #1e293b !important;
-        border: 2px solid #3b82f6 !important;
-        border-radius: 6px !important;
-        min-height: 45px;
+        background-color: #ffffff !important; color: #1e293b !important;
+        border: 2px solid #3b82f6 !important; border-radius: 6px !important;
     }
+    svg[title="open"] { fill: #3b82f6 !important; transform: scale(1.5); }
 
-    /* Dropdown Arrow Visibility Fix */
-    svg[title="open"] { 
-        fill: #3b82f6 !important; 
-        transform: scale(1.5); /* Larger arrow */
-    }
-
-    /* Section Headers - 50% Bigger */
-    .section-header {
-        color: #ffffff;
-        font-size: 2.2rem; /* 50% bigger than 1.5rem */
-        font-weight: 800;
-        border-bottom: 3px solid #3b82f6;
-        margin-top: 30px;
-        margin-bottom: 20px;
-        padding-bottom: 5px;
-    }
-
-    /* Banner Container */
-    .banner-container {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 20px;
-    }
-
-    /* Submit Button */
-    .stButton>button {
-        background-color: #3b82f6;
-        color: white;
-        font-weight: bold;
-        border-radius: 8px;
-        height: 3.5em;
-        width: 100%;
-        font-size: 1.2rem;
+    /* Custom Image Button Hover Effect */
+    .img-button:hover {
+        transform: scale(1.05);
+        cursor: pointer;
+        filter: brightness(1.1);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -126,29 +72,21 @@ if "authenticated" not in st.session_state:
 if not st.session_state["authenticated"]:
     _, col_mid, _ = st.columns([0.5, 1.2, 0.5])
     with col_mid:
-        # 1. Login Banner (GitHub Image)
         if os.path.exists("banner.png"):
             st.image("banner.png", use_container_width=True)
-        
         st.markdown("<h1 style='text-align: center; color: white;'>LOGIN</h1>", unsafe_allow_html=True)
-        
-        # 2. Login Credentials Label
         st.markdown('<p class="login-credentials-label">Enter Login Credentials</p>', unsafe_allow_html=True)
         login_id = st.text_input("", type="password", label_visibility="collapsed").upper().strip()
-        
         if st.button("ENTER"):
             clean_login = re.sub(r'[^A-Z0-9]', '', login_id)
             if clean_login in data["USERS"]:
                 st.session_state["authenticated"] = True
                 st.session_state["user_name"] = data["USERS"][clean_login]
                 st.rerun()
-            else:
-                st.error("Invalid Credentials")
+            else: st.error("Invalid Credentials")
     st.stop()
 
 # --- 4. MAIN INTERFACE ---
-
-# 1. Header with Railway Logo (GitHub Image)
 col_logo, col_title = st.columns([0.15, 0.85])
 with col_logo:
     if os.path.exists("logo.png"):
@@ -157,30 +95,25 @@ with col_title:
     st.markdown("<h1 style='color: white; margin-top: 10px;'>कैरिज वर्कशॉप आलमाग (CWA)</h1>", unsafe_allow_html=True)
     st.markdown("<p style='color: #60a5fa; font-size: 1.5rem;'>Grievance Redressal Management System</p>", unsafe_allow_html=True)
 
-# 2. Welcome Bar - 200% Bigger & Blue
 st.markdown(f'<p class="welcome-text">Welcome, {st.session_state["user_name"]} 👋</p>', unsafe_allow_html=True)
 
-if st.button("Logout", key="logout_btn"):
+if st.button("Logout"):
     st.session_state["authenticated"] = False
     st.rerun()
 
 with st.form("main_form"):
-    # Section 1: Employee Details
     st.markdown('<div class="section-header">📋 कर्मचारी का विवरण (Employee details)</div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    with col1:
+    c1, c2 = st.columns(2)
+    with c1:
         emp_name = st.text_input("1. कर्मचारी का नाम")
         emp_desig = st.selectbox("2. कर्मचारी का पद", data["DESIG"])
         emp_trade = st.selectbox("3. कर्मचारी का ट्रेड", data["TRADE"])
-    with col2:
+    with c2:
         emp_no = st.text_input("4. Employee Number")
         hrms_id = st.text_input("5. HRMS ID", max_chars=6).upper()
         section = st.text_input("6. सेक्शन")
 
-    # Section 2: Grievance Details
     st.markdown('<div class="section-header">📝 समस्या विवरण (Grievance)</div>', unsafe_allow_html=True)
-    
     gx, gy = st.columns(2)
     with gx:
         g_type = st.selectbox("Grievance प्रकार", data["G_TYPE"])
@@ -190,12 +123,16 @@ with st.form("main_form"):
         auth_z = st.selectbox("पत्र जारीकर्ता अधिकारी (Letter By)", data["AUTH_Z"])
     
     g_detail = st.text_area("विवरण (Detailed Grievance)")
-
-    st.write(f"✍️ **Employee/ Officer registering grievance:** {st.session_state['user_name']}")
     
-    _, btn_c, _ = st.columns([1, 1, 1])
-    with btn_c:
-        submit = st.form_submit_button("📜 GENERATE PDF")
+    # Image Button Logic
+    _, btn_col, _ = st.columns([1, 1, 1])
+    with btn_col:
+        if os.path.exists("button.png"):
+            st.image("button.png", use_container_width=True)
+            st.markdown('<p style="text-align:center; color:#60a5fa;">Click the button below to confirm</p>', unsafe_allow_html=True)
+        
+        # We still need the actual submit button to process the form
+        submit = st.form_submit_button("GENERATE PDF")
 
 if submit:
-    st.success("Form processed.")
+    st.success("PDF processing started...")
