@@ -40,7 +40,7 @@ def load_custom_data():
 data = load_custom_data()
 
 # --- 2. STYLING ---
-st.set_page_config(page_title="CWA Grievance System", layout="wide")
+st.set_page_config(page_title="Grievance Management System", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #273342; color: #e2e8f0; }
@@ -195,4 +195,5 @@ if submit:
             st.download_button("📥 Download Word File", doc_bytes, f"{file_name_clean}.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
         except Exception as e:
             st.error(f"Error: {e}")
+
 
