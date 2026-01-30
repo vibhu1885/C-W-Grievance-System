@@ -1,7 +1,8 @@
 USER_LIST
-ADMIN1, Rajesh Singh
-CWA123, Suresh Sharma
-TEST01, Amit Kumar
+OAIFHL, Vibhore Maurya (Senior Clerk)
+FHBODA, Vivek Kumar Dubey (SWLI)
+XGIYTJ, Vinod Kumar (APO)
+ZYTSAF, Amit Pandey
 
 DESIGNATIONS
 SSE
