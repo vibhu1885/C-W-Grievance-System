@@ -1,6 +1,6 @@
 streamlit
-fpdf
 fpdf2
 pandas
-openpyxl
+indic-nlp-library
+fonttools
 
