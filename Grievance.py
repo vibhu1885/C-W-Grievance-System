@@ -38,7 +38,7 @@ def load_custom_data():
 
 data = load_custom_data()
 
-# --- 2. ENTERPRISE GREY THEME ---
+# --- 2. ENTERPRISE GREY THEME & FONT SCALING ---
 st.set_page_config(page_title="CWA Grievance System", layout="wide")
 
 st.markdown("""
@@ -49,16 +49,31 @@ st.markdown("""
         color: #e2e8f0;
     }
     
-    /* Input Field Labels - High Visibility but Softer than Gold */
+    /* Login Styling */
+    .login-credentials-label {
+        font-size: 1.5rem !important; /* 50% bigger than standard 1rem */
+        color: #60a5fa;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    /* Input Field Labels - 50% Bigger */
     label {
-        color: #60a5fa !important; /* Soft Blue */
+        color: #60a5fa !important;
         font-weight: 700 !important;
-        font-size: 1.1rem !important;
+        font-size: 1.5rem !important; /* 50% bigger */
         margin-bottom: 8px !important;
     }
 
+    /* Welcome Message - 200% Bigger & Blue */
+    .welcome-text {
+        font-size: 2.5rem !important;
+        color: #3b82f6 !important;
+        font-weight: 800;
+        margin-bottom: 20px;
+    }
+
     /* Polished Dropdowns & Text Boxes */
-    /* We force a white background and a distinct border for the 'Dropdown' look */
     input, div[data-baseweb="select"] > div, textarea {
         background-color: #ffffff !important;
         color: #1e293b !important;
@@ -67,30 +82,28 @@ st.markdown("""
         min-height: 45px;
     }
 
-    /* Styling the Dropdown Arrow to look like a Button */
+    /* Dropdown Arrow Visibility Fix */
     svg[title="open"] { 
         fill: #3b82f6 !important; 
-        transform: scale(1.2);
+        transform: scale(1.5); /* Larger arrow */
     }
 
-    /* Section Headers */
+    /* Section Headers - 50% Bigger */
     .section-header {
         color: #ffffff;
-        font-size: 1.6rem;
+        font-size: 2.2rem; /* 50% bigger than 1.5rem */
         font-weight: 800;
-        border-bottom: 2px solid #60a5fa;
-        margin-top: 25px;
-        margin-bottom: 15px;
+        border-bottom: 3px solid #3b82f6;
+        margin-top: 30px;
+        margin-bottom: 20px;
         padding-bottom: 5px;
     }
 
-    /* Header Banner */
-    .banner {
-        background-color: #1e293b;
-        padding: 20px;
-        border-radius: 12px;
-        border-bottom: 4px solid #3b82f6;
-        margin-bottom: 25px;
+    /* Banner Container */
+    .banner-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
     }
 
     /* Submit Button */
@@ -99,13 +112,9 @@ st.markdown("""
         color: white;
         font-weight: bold;
         border-radius: 8px;
-        height: 3.2em;
+        height: 3.5em;
         width: 100%;
-        border: none;
-    }
-    .stButton>button:hover {
-        background-color: #2563eb;
-        border: none;
+        font-size: 1.2rem;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -115,40 +124,45 @@ if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
 if not st.session_state["authenticated"]:
-    _, col_mid, _ = st.columns([1, 1.2, 1])
+    _, col_mid, _ = st.columns([0.5, 1.2, 0.5])
     with col_mid:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        st.image("https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Indian_Railways_NS_Logo.svg/1200px-Indian_Railways_NS_Logo.svg.png", width=100)
-        st.markdown("<h2 style='text-align: center; color: white;'>OFFICER LOGIN</h2>", unsafe_allow_html=True)
-        login_id = st.text_input("Enter Password", type="password").upper().strip()
-        if st.button("LOGIN"):
+        # 1. Login Banner (GitHub Image)
+        if os.path.exists("banner.png"):
+            st.image("banner.png", use_container_width=True)
+        
+        st.markdown("<h1 style='text-align: center; color: white;'>LOGIN</h1>", unsafe_allow_html=True)
+        
+        # 2. Login Credentials Label
+        st.markdown('<p class="login-credentials-label">Enter Login Credentials</p>', unsafe_allow_html=True)
+        login_id = st.text_input("", type="password", label_visibility="collapsed").upper().strip()
+        
+        if st.button("ENTER"):
             clean_login = re.sub(r'[^A-Z0-9]', '', login_id)
             if clean_login in data["USERS"]:
                 st.session_state["authenticated"] = True
                 st.session_state["user_name"] = data["USERS"][clean_login]
                 st.rerun()
             else:
-                st.error("Invalid ID")
+                st.error("Invalid Credentials")
     st.stop()
 
 # --- 4. MAIN INTERFACE ---
-st.markdown('<div class="banner">', unsafe_allow_html=True)
-b_logo, b_title = st.columns([0.1, 0.9])
-with b_logo:
-    st.image("https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Indian_Railways_NS_Logo.svg/1200px-Indian_Railways_NS_Logo.svg.png", width=80)
-with b_title:
-    st.markdown("<h2 style='color: white; margin:0;'>कैरिज वर्कशॉप आलमाग (CWA)</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #60a5fa; margin:0; font-size: 1.2rem;'>Grievance Redressal Management System</p>", unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
 
-# Welcome Bar
-c_greet, c_out = st.columns([0.8, 0.2])
-with c_greet:
-    st.markdown(f"Welcome, **{st.session_state['user_name']}**")
-with c_out:
-    if st.button("Logout"):
-        st.session_state["authenticated"] = False
-        st.rerun()
+# 1. Header with Railway Logo (GitHub Image)
+col_logo, col_title = st.columns([0.15, 0.85])
+with col_logo:
+    if os.path.exists("logo.png"):
+        st.image("logo.png", width=120)
+with col_title:
+    st.markdown("<h1 style='color: white; margin-top: 10px;'>कैरिज वर्कशॉप आलमाग (CWA)</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #60a5fa; font-size: 1.5rem;'>Grievance Redressal Management System</p>", unsafe_allow_html=True)
+
+# 2. Welcome Bar - 200% Bigger & Blue
+st.markdown(f'<p class="welcome-text">Welcome, {st.session_state["user_name"]} 👋</p>', unsafe_allow_html=True)
+
+if st.button("Logout", key="logout_btn"):
+    st.session_state["authenticated"] = False
+    st.rerun()
 
 with st.form("main_form"):
     # Section 1: Employee Details
@@ -177,12 +191,11 @@ with st.form("main_form"):
     
     g_detail = st.text_area("विवरण (Detailed Grievance)")
 
-    st.write(f"✍️ **Officer Registering:** {st.session_state['user_name']}")
+    st.write(f"✍️ **Employee/ Officer registering grievance:** {st.session_state['user_name']}")
     
     _, btn_c, _ = st.columns([1, 1, 1])
     with btn_c:
         submit = st.form_submit_button("📜 GENERATE PDF")
 
 if submit:
-    # PDF Logic (utsaah.ttf required in repo)
-    st.success("Form submitted successfully.")
+    st.success("Form processed.")
