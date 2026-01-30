@@ -145,7 +145,7 @@ col_logo, col_title = st.columns([0.15, 0.85])
 with col_logo:
     if os.path.exists("logo.png"): st.image("logo.png", width=120)
 with col_title:
-    st.markdown("<h1 style='color: white;'>कैरिज वर्कशॉप आलमाग (CWA)</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='color: white;'>Carriage Workshop Alambagh, Lucknow</h1>", unsafe_allow_html=True)
 
 st.markdown(f'<p class="welcome-text">Welcome, {st.session_state["user_name"]} 👋</p>', unsafe_allow_html=True)
 
@@ -175,7 +175,7 @@ with st.form("main_form"):
     _, btn_col, _ = st.columns([1, 1, 1])
     with btn_col:
         if os.path.exists("button.png"): st.image("button.png", use_container_width=True)
-        submit = st.form_submit_button("GENERATE WORD FILE")
+        submit = st.form_submit_button("GENERATE LETTER")
 
 if submit:
     if not emp_name or not hrm_id:
@@ -195,3 +195,4 @@ if submit:
             st.download_button("📥 Download Word File", doc_bytes, f"{file_name_clean}.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
         except Exception as e:
             st.error(f"Error: {e}")
+
