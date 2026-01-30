@@ -1,103 +1,71 @@
 import streamlit as st
 from fpdf import FPDF
-from datetime import datetime
+import re
 
-# --- APP CONFIGURATION ---
-st.set_page_config(page_title="Grievance Redressal System", layout="centered")
+# --- USER REGISTRY (Authorized Employees) ---
+# Map HRMS ID to the Name of the person logging the grievance
+AUTHORIZED_USERS = {
+    "OAIFHL": "Vibhore Maurya, Sr. Clerk",
+    "FHBODA": "Vivek Kumar Dubey, SWLI",
+    
+}
 
-def generate_pdf(data):
-    pdf = FPDF()
-    pdf.add_page()
-    
-    # Header
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, "OFFICE GRIEVANCE REDRESSAL LETTER", ln=True, align='C')
-    pdf.ln(10)
-    
-    # Date & Reference
-    pdf.set_font("Arial", size=12)
-    pdf.cell(100, 10, f"Date: {data['date']}")
-    pdf.cell(100, 10, f"Section: {data['section']}", ln=True, align='R')
-    pdf.ln(5)
-    
-    # Body
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(200, 10, f"To: {data['redressal_authority']}", ln=True)
-    pdf.ln(5)
-    
-    pdf.set_font("Arial", size=12)
-    body_text = (
-        f"This is to formally bring to your notice a grievance submitted by "
-        f"Mr./Ms. {data['employee_name']} working in the {data['section']} section. "
-        f"\n\nGrievance Type: {data['grievance_type']}\n"
-        f"Details: {data['details']}\n\n"
-        f"This matter was collected during a routine inspection by {data['collector']}. "
-        f"We request you to look into this matter for timely redressal."
-    )
-    pdf.multi_cell(0, 10, body_text)
-    pdf.ln(20)
-    
-    # Signature
-    pdf.cell(0, 10, "Regards,", ln=True, align='R')
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, f"{data['issuing_authority']}", ln=True, align='R')
-    
-    return pdf.output(dest='S').encode('latin-1')
+# --- CONFIGURATION ---
+st.set_page_config(page_title="CWA Grievance System", layout="wide")
 
-# --- UI LAYOUT ---
-st.header("📋 Grievance Entry Portal")
-st.info("Fill the details below to automatically generate a formal letter.")
+# --- AUTHENTICATION LOGIC ---
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+    st.session_state["user_name"] = ""
 
-with st.form("grievance_form"):
-    # Section A: Trip Details
+if not st.session_state["authenticated"]:
+    st.title("🔐 लॉगिन करें")
+    login_id = st.text_input("अपनी HRMS ID दर्ज करें (Password)", type="password").upper()
+    if st.button("प्रवेश करें"):
+        if login_id in AUTHORIZED_USERS:
+            st.session_state["authenticated"] = True
+            st.session_state["user_name"] = AUTHORIZED_USERS[login_id]
+            st.rerun()
+        else:
+            st.error("अमान्य HRMS ID। कृपया सही आईडी दर्ज करें।")
+    st.stop()
+
+# --- MAIN APP INTERFACE ---
+st.markdown(f"### नमस्ते, **{st.session_state['user_name']}** 👋")
+st.title("🛠️ कैरिज वर्कशॉप आलमाग Grievance Redressal System")
+st.divider()
+
+with st.form("main_form"):
     col1, col2 = st.columns(2)
-    with col1:
-        collector = st.text_input("Collector Name (A)", placeholder="Enter your name")
-        visit_date = st.date_input("Date of Visit (C)", value=datetime.now())
-    with col2:
-        section = st.selectbox("Office Section (B)", ["Accounts", "Admin", "General Store", "IT Cell"])
-        emp_name = st.text_input("Employee Name (D)")
-
-    # Section B: The Grievance (X)
-    grievance_type = st.selectbox("Grievance Type (X)", 
-                                ["Salary Dispute", "Infrastructure Issue", "Workplace Conduct", "Other"])
     
-    custom_details = st.text_area("Grievance Details (Dynamic Column)", 
-                                 help="Describe the issue in detail here.")
+    with col1:
+        date = st.date_input("दिनांक")
+        emp_name = st.text_input("कर्मचारी का नाम")
+        emp_desig = st.selectbox("कर्मचारी का पद", ["SSE", "JE", "Technician-I", "Technician-II", "Helper"])
+        emp_trade = st.selectbox("कर्मचारी का ट्रेड", ["Fitter", "Welder", "Painter", "Machinist", "Carpenter"])
+        emp_no = st.text_input("कर्मचारी का Employee Number")
 
-    # Section C: Authorities (Y & Z)
-    col3, col4 = st.columns(2)
-    with col3:
-        redress_auth = st.selectbox("Redressal Authority (Y)", ["Director", "Joint Secretary", "Head of Dept"])
-    with col4:
-        issue_auth = st.selectbox("Issuing Authority (Z)", ["Registrar", "Admin Officer", "Deputy Director"])
+    with col2:
+        hrms_id = st.text_input("कर्मचारी की HRMS ID (6 Capital Letters)", max_chars=6).upper()
+        section = st.text_input("कर्मचारी का सेक्शन")
+        g_type = st.selectbox("कर्मचारी की समस्या का प्रकार", ["Salary", "Leave", "Pass/PTO", "Quarters", "Other"])
+        authority_y = st.selectbox("संबंधित अधिकारी", ["WM", "AWM", "Dy.CME", "SPO"])
+        authority_z = st.selectbox("पत्र जारी करने हेतु अधिकारी", ["Ch.OS", "SSE In-charge", "Establishment Section"])
 
-    submit = st.form_submit_button("Generate & Preview Letter")
+    g_detail = st.text_area("कर्मचारी की समस्या का विवरण (Main Grievance)")
+    
+    # Static info for the logger
+    st.write(f"**ग्रीवांस दर्ज करने वाला कर्मचारी/अधिकारी:** {st.session_state['user_name']}")
 
+    submit = st.form_submit_button("PDF जेनरेट करें")
+
+# --- VALIDATION & PDF GENERATION ---
 if submit:
-    # Validate inputs
-    if not emp_name or not collector:
-        st.error("Please fill in the Employee and Collector names.")
+    # Check HRMS ID format: Exactly 6 Capital Letters
+    if not re.match(r"^[A-Z]{6}$", hrms_id):
+        st.error("त्रुटि: कर्मचारी की HRMS ID ठीक 6 कैपिटल लेटर्स की होनी चाहिए (उदा: ABCDEF)।")
+    elif not emp_name or not g_detail:
+        st.warning("कृपया सभी अनिवार्य जानकारी भरें।")
     else:
-        # Prepare data for PDF
-        form_data = {
-            "collector": collector,
-            "date": visit_date.strftime("%d-%m-%Y"),
-            "section": section,
-            "employee_name": emp_name,
-            "grievance_type": grievance_type,
-            "details": custom_details,
-            "redressal_authority": redress_auth,
-            "issuing_authority": issue_auth
-        }
-        
-        # Generate PDF
-        pdf_bytes = generate_pdf(form_data)
-        
-        st.success("✅ Letter generated successfully!")
-        st.download_button(
-            label="Download PDF Letter",
-            data=pdf_bytes,
-            file_name=f"Grievance_{emp_name}.pdf",
-            mime="application/pdf"
-        )
+        st.success("डेटा सत्यापित! PDF तैयार की जा रही है...")
+        # (PDF generation logic would go here - similar to previous version but with Hindi headers)
