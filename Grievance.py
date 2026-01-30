@@ -79,35 +79,34 @@ if not st.session_state["authenticated"]:
 
 # --- 4. FIXED PDF LOGIC (FPDF2) ---
 def generate_official_pdf(form_data, user_name):
-    # FPDF2 handles Unicode by default
+    # Initialize FPDF2
     pdf = FPDF()
     pdf.add_page()
     
-    # Header Logo
+    font_path = "utsaah.ttf"
+    
+    # 1. STRICT FONT REGISTRATION
+    if os.path.exists(font_path):
+        # We register the font with the name 'HindiFont' to be explicit
+        pdf.add_font('HindiFont', '', font_path)
+        pdf.set_font('HindiFont', '', 20)
+    else:
+        # If the file is missing, we stop here to prevent the Helvetica crash
+        st.error(f"❌ Critical Error: '{font_path}' not found in repository. Please upload the font file.")
+        return None
+
+    # 2. PDF HEADER
     if os.path.exists("logo.png"):
         pdf.image("logo.png", 10, 8, 25)
     
-    # Hindi Font Registration
-    font_path = "utsaah.ttf"
-    if os.path.exists(font_path):
-        pdf.add_font('Utsaah', '', font_path)
-        pdf.set_font('Utsaah', '', 20)
-    else:
-        pdf.set_font('Arial', 'B', 16)
-
-    # Title
     pdf.cell(0, 10, "उत्तर रेलवे - कैरिज वर्कशॉप आलमाग", ln=True, align='C')
     
-    # Set Font for Body
-    if os.path.exists(font_path):
-        pdf.set_font('Utsaah', '', 14)
-    else:
-        pdf.set_font('Arial', '', 12)
-        
+    pdf.set_font('HindiFont', '', 14)
     pdf.cell(0, 10, "Grievance Redressal Management System", ln=True, align='C')
     pdf.ln(15)
     
-    # Multi-cell Content (Hindi strings)
+    # 3. BODY CONTENT
+    # Every string here MUST use 'HindiFont'
     content = [
         f"Grievance दिनांक: {form_data['date']}",
         f"कर्मचारी का नाम: {form_data['name']}",
@@ -124,12 +123,12 @@ def generate_official_pdf(form_data, user_name):
     ]
     
     for line in content:
+        # multi_cell will now use HindiFont for every character
         pdf.multi_cell(0, 10, line)
     
     pdf.ln(20)
     pdf.cell(0, 10, f"दर्जकर्ता: {user_name}", ln=True, align='R')
     
-    # FIX: Output direct bytes for Streamlit download
     return pdf.output()
 
 # --- 5. MAIN INTERFACE ---
@@ -192,3 +191,4 @@ if submit:
             st.download_button("📥 Click Here to Download PDF", pdf_bytes, f"Grievance_{hrms_id}.pdf", "application/pdf")
         except Exception as e:
             st.error(f"PDF Error: {e}")
+
