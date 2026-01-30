@@ -76,3 +76,119 @@ if not st.session_state["authenticated"]:
                 st.rerun()
             else: st.error("Invalid Credentials")
     st.stop()
+
+# --- 4. FIXED PDF LOGIC (FPDF2) ---
+def generate_official_pdf(form_data, user_name):
+    # FPDF2 handles Unicode by default
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Header Logo
+    if os.path.exists("logo.png"):
+        pdf.image("logo.png", 10, 8, 25)
+    
+    # Hindi Font Registration
+    font_path = "utsaah.ttf"
+    if os.path.exists(font_path):
+        pdf.add_font('Utsaah', '', font_path)
+        pdf.set_font('Utsaah', '', 20)
+    else:
+        pdf.set_font('Arial', 'B', 16)
+
+    # Title
+    pdf.cell(0, 10, "उत्तर रेलवे - कैरिज वर्कशॉप आलमाग", ln=True, align='C')
+    
+    # Set Font for Body
+    if os.path.exists(font_path):
+        pdf.set_font('Utsaah', '', 14)
+    else:
+        pdf.set_font('Arial', '', 12)
+        
+    pdf.cell(0, 10, "Grievance Redressal Management System", ln=True, align='C')
+    pdf.ln(15)
+    
+    # Multi-cell Content (Hindi strings)
+    content = [
+        f"Grievance दिनांक: {form_data['date']}",
+        f"कर्मचारी का नाम: {form_data['name']}",
+        f"पद: {form_data['desig']}",
+        f"ट्रेड: {form_data['trade']}",
+        f"Employee Number: {form_data['emp_no']}",
+        f"HRMS ID: {form_data['hrms']}",
+        f"सेक्शन: {form_data['section']}",
+        "--------------------------------------------------",
+        f"Grievance प्रकार: {form_data['type']}",
+        f"संबंधित अधिकारी (Letter To): {form_data['y']}",
+        f"पत्र जारीकर्ता अधिकारी (Letter By): {form_data['z']}",
+        f"\nविवरण: {form_data['detail']}"
+    ]
+    
+    for line in content:
+        pdf.multi_cell(0, 10, line)
+    
+    pdf.ln(20)
+    pdf.cell(0, 10, f"दर्जकर्ता: {user_name}", ln=True, align='R')
+    
+    # FIX: Output direct bytes for Streamlit download
+    return pdf.output()
+
+# --- 5. MAIN INTERFACE ---
+col_logo, col_title = st.columns([0.15, 0.85])
+with col_logo:
+    if os.path.exists("logo.png"):
+        st.image("logo.png", width=120)
+with col_title:
+    st.markdown("<h1 style='color: white; margin-top: 10px;'>कैरिज वर्कशॉप आलमाग (CWA)</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #60a5fa; font-size: 1.5rem;'>Grievance Redressal Management System</p>", unsafe_allow_html=True)
+
+st.markdown(f'<p class="welcome-text">Welcome, {st.session_state["user_name"]} 👋</p>', unsafe_allow_html=True)
+
+if st.button("Logout"):
+    st.session_state["authenticated"] = False
+    st.rerun()
+
+with st.form("main_form"):
+    st.markdown('<div class="section-header">📋 कर्मचारी का विवरण (Employee details)</div>', unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    with c1:
+        emp_name = st.text_input("1. कर्मचारी का नाम")
+        emp_desig = st.selectbox("2. कर्मचारी का पद", data["DESIG"])
+        emp_trade = st.selectbox("3. कर्मचारी का ट्रेड", data["TRADE"])
+    with c2:
+        emp_no = st.text_input("4. Employee Number")
+        hrms_id = st.text_input("5. HRMS ID", max_chars=6).upper()
+        section = st.text_input("6. सेक्शन")
+
+    st.markdown('<div class="section-header">📝 समस्या विवरण (Grievance)</div>', unsafe_allow_html=True)
+    gx, gy = st.columns(2)
+    with gx:
+        g_type = st.selectbox("Grievance प्रकार", data["G_TYPE"])
+        auth_y = st.selectbox("संबंधित अधिकारी (Letter To)", data["AUTH_Y"])
+    with gy:
+        date_c = st.date_input("Grievance दिनांक")
+        auth_z = st.selectbox("पत्र जारीकर्ता अधिकारी (Letter By)", data["AUTH_Z"])
+    
+    g_detail = st.text_area("विवरण (Detailed Grievance)")
+    
+    _, btn_col, _ = st.columns([1, 1, 1])
+    with btn_col:
+        if os.path.exists("button.png"):
+            st.image("button.png", use_container_width=True)
+        submit = st.form_submit_button("GENERATE PDF")
+
+if submit:
+    if not emp_name or not hrms_id:
+        st.error("Please fill Name and HRMS ID")
+    else:
+        pdf_data = {
+            "date": date_c.strftime("%d-%m-%Y"),
+            "name": emp_name, "desig": emp_desig, "trade": emp_trade,
+            "emp_no": emp_no, "hrms": hrms_id, "section": section,
+            "type": g_type, "detail": g_detail, "y": auth_y, "z": auth_z
+        }
+        try:
+            pdf_bytes = generate_official_pdf(pdf_data, st.session_state["user_name"])
+            st.success("✅ PDF तैयार है!")
+            st.download_button("📥 Click Here to Download PDF", pdf_bytes, f"Grievance_{hrms_id}.pdf", "application/pdf")
+        except Exception as e:
+            st.error(f"PDF Error: {e}")
