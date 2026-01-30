@@ -1,12 +1,36 @@
-[USERS]
-UserID,UserName
-ADMIN1,Rajesh Singh
-CWA123,Suresh Sharma
-TEST01,Amit Kumar
+USER_LIST
+ADMIN1, Rajesh Singh
+CWA123, Suresh Sharma
+TEST01, Amit Kumar
 
-[MAPPINGS]
-Designations,Trades,GrievanceTypes,AuthoritiesY,AuthoritiesZ
-SSE,Fitter,Salary Dispute,WM,Ch.OS
-JE,Welder,Leave Issue,AWM,SSE In-charge
-Helper,Painter,Pass/PTO,Dy.CME,Establishment Section
-Technician,Machinist,Quarters,SPO,Admin Branch
+DESIGNATIONS
+SSE
+JE
+Technician-I
+Technician-II
+Helper
+
+TRADES
+Fitter
+Welder
+Painter
+Machinist
+Carpenter
+
+GRIEVANCE_TYPES
+Salary Dispute
+Leave Issue
+Pass/PTO
+Quarters
+Other
+
+AUTHORITIES_Y
+WM (Workshop Manager)
+AWM
+Dy.CME
+SPO
+
+AUTHORITIES_Z
+Ch.OS
+SSE In-charge
+Establishment Section
