@@ -1,8 +1,8 @@
 USER_LIST
-OAIFHL, Vibhore Maurya (Senior Clerk)
-FHBODA, Vivek Kumar Dubey (SWLI)
-XGIYTJ, Vinod Kumar (APO)
-ZYTSAF, Amit Pandey (Dy. CPO)
+OAIFHL,Vibhore Maurya (Senior Clerk)
+FHBODA,Vivek Kumar Dubey (SWLI)
+XGIYTJ,Vinod Kumar (APO)
+ZYTSAF,Amit Pandey (Dy. CPO)
 
 DESIGNATIONS
 SSE
