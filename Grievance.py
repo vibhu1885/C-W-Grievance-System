@@ -184,7 +184,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 # User Info Bar
 col_greet, col_out = st.columns([0.8, 0.2])
 with col_greet:
-    st.markdown(f"### Welcome,:white[{st.session_state['user_name']}] 👋")
+    st.markdown(f"### Welcome,'user_name')
 with col_out:
     if st.button("🚪 LOGOUT"):
         st.session_state["authenticated"] = False
@@ -250,4 +250,5 @@ if submit:
             )
         except Exception as e:
             st.error(f"Error creating PDF: {e}")
+
 
