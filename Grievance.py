@@ -44,7 +44,7 @@ def load_custom_data():
 
 data = load_custom_data()
 
-# --- 2. VIBRANT COLORFUL THEME WITH WHITE TEXT BOXES ---
+# --- 2. VIBRANT THEME WITH HIGH-VISIBILITY HEADINGS ---
 st.set_page_config(page_title="CWA Grievance System", layout="wide")
 
 st.markdown("""
@@ -54,64 +54,76 @@ st.markdown("""
         background: linear-gradient(135deg, #1e3a8a 0%, #0d9488 100%);
     }
     
-    /* Global Text Styling */
-    html, body, [class*="st-"] {
-        font-size: 1.1rem;
+    /* Login & Container Styling */
+    .stForm {
+        background-color: rgba(255, 255, 255, 0.1); /* Transparent layer for glass effect */
+        border: none;
     }
 
-    /* Input Field Labels - Bigger & Darker */
+    /* Input Field Labels - EXTRA BOLD & VISIBLE */
     label {
-        color: #1e293b !important;
-        font-weight: 800 !important;
-        font-size: 1.2rem !important;
+        color: #000000 !important;
+        font-weight: 900 !important;
+        font-size: 1.3rem !important;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 2px 10px;
+        border-radius: 5px;
+        display: inline-block;
         margin-bottom: 8px !important;
     }
 
-    /* Force White Text Boxes */
+    /* Force Pure White Text Boxes */
     input, div[data-baseweb="select"] > div, textarea {
         background-color: #ffffff !important;
         color: #000000 !important;
-        border: 2px solid #cbd5e1 !important;
-        border-radius: 8px !important;
+        border: 3px solid #1e3a8a !important;
+        border-radius: 10px !important;
+        font-size: 1.1rem !important;
     }
 
     /* White Box Sections */
     .white-section {
         background-color: #ffffff;
-        padding: 30px;
+        padding: 35px;
         border-radius: 15px;
-        border-top: 10px solid #f59e0b;
-        margin-bottom: 20px;
-        box-shadow: 0 10px 15px rgba(0,0,0,0.2);
-    }
-
-    /* Headings Styling */
-    .big-heading {
-        color: #ffffff;
-        font-size: 3rem;
-        font-weight: 900;
-        text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
-        text-align: center;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.4);
         margin-bottom: 30px;
     }
+
+    /* Main App Titles - High Visibility */
+    .big-heading {
+        color: #ffffff;
+        font-size: 3.5rem;
+        font-weight: 900;
+        text-shadow: 4px 4px 8px #000000;
+        text-align: center;
+        background-color: rgba(0, 0, 0, 0.2);
+        padding: 15px;
+        border-radius: 15px;
+        margin-bottom: 40px;
+    }
     
-    .section-header {
-        color: #1e3a8a;
+    .section-header-box {
+        background-color: #f59e0b; /* Bright Amber for section headers */
+        color: #ffffff;
+        padding: 10px 20px;
+        border-radius: 10px;
         font-size: 1.8rem;
         font-weight: 900;
-        margin-bottom: 20px;
-        text-decoration: underline;
+        display: inline-block;
+        margin-bottom: 15px;
+        box-shadow: 3px 3px 10px rgba(0,0,0,0.3);
     }
 
-    /* Button */
-    .stButton>button {
-        background-color: #f59e0b;
-        color: #ffffff;
-        font-size: 1.5rem;
+    /* Welcome Text */
+    .welcome-bar {
+        background-color: #ffffff;
+        color: #1e3a8a;
+        padding: 10px 20px;
+        border-radius: 50px;
         font-weight: bold;
-        padding: 15px;
-        border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        display: inline-block;
+        border: 2px solid #f59e0b;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -124,8 +136,8 @@ if not st.session_state["authenticated"]:
     _, col_mid, _ = st.columns([1, 1.5, 1])
     with col_mid:
         st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; color: white; text-shadow: 2px 2px 4px black;'>SYSTEM LOGIN</h1>", unsafe_allow_html=True)
         with st.container():
-            st.markdown("<h1 style='text-align: center; color: white;'>SYSTEM LOGIN</h1>", unsafe_allow_html=True)
             login_id = st.text_input("Enter Password (HRMS ID)", type="password").upper().strip()
             if st.button("ENTER SYSTEM"):
                 clean_login = re.sub(r'[^A-Z0-9]', '', login_id)
@@ -140,7 +152,7 @@ if not st.session_state["authenticated"]:
 # --- 4. MAIN INTERFACE ---
 col_greet, col_out = st.columns([0.8, 0.2])
 with col_greet:
-    st.markdown(f"<h3 style='color: #e0f2fe;'>Welcome, {st.session_state['user_name']} 👋</h3>", unsafe_allow_html=True)
+    st.markdown(f"<div class='welcome-bar'>Welcome, {st.session_state['user_name']} 👋</div>", unsafe_allow_html=True)
 with col_out:
     if st.button("LOGOUT"):
         st.session_state["authenticated"] = False
@@ -149,34 +161,23 @@ with col_out:
 st.markdown("<h1 class='big-heading'>🛠️ कैरिज वर्कशॉप आलमाग Grievance System</h1>", unsafe_allow_html=True)
 
 with st.form("main_form"):
-    # Group 1: Employee Details (Chronology Updated)
-    st.markdown('<p class="section-header">📋 कर्मचारी का विवरण (Employee details)</p>', unsafe_allow_html=True)
+    # Group 1: Employee Details (Strict Chronology)
+    st.markdown('<div class="section-header-box">📋 कर्मचारी का विवरण (Employee details)</div>', unsafe_allow_html=True)
     with st.container():
         st.markdown('<div class="white-section">', unsafe_allow_html=True)
-        # Row 1
-        r1_c1, r1_c2 = st.columns(2)
-        with r1_c1:
+        c1, c2 = st.columns(2)
+        with c1:
             emp_name = st.text_input("कर्मचारी का नाम")
-        with r1_c2:
             emp_desig = st.selectbox("कर्मचारी का पद", data["DESIG"])
-        
-        # Row 2
-        r2_c1, r2_c2 = st.columns(2)
-        with r2_c1:
             emp_trade = st.selectbox("कर्मचारी का ट्रेड", data["TRADE"])
-        with r2_c2:
+        with c2:
             emp_no = st.text_input("Employee Number")
-        
-        # Row 3
-        r3_c1, r3_c2 = st.columns(2)
-        with r3_c1:
             hrms_id = st.text_input("HRMS ID", max_chars=6).upper()
-        with r3_c2:
             section = st.text_input("सेक्शन")
         st.markdown('</div>', unsafe_allow_html=True)
 
     # Group 2: Grievance Details
-    st.markdown('<p class="section-header">📝 समस्या विवरण (Grievance)</p>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header-box">📝 समस्या विवरण (Grievance)</div>', unsafe_allow_html=True)
     with st.container():
         st.markdown('<div class="white-section">', unsafe_allow_html=True)
         col_a, col_b = st.columns(2)
@@ -190,8 +191,9 @@ with st.form("main_form"):
         g_detail = st.text_area("विवरण (Detailed Grievance)")
         st.markdown('</div>', unsafe_allow_html=True)
     
-    st.markdown(f"<p style='color: white; font-size: 1.2rem;'><b>Registering User:</b> {st.session_state['user_name']}</p>", unsafe_allow_html=True)
+    st.markdown(f"<div style='background-color:white; padding:10px; border-radius:10px; display:inline-block;'><b>Registering User:</b> {st.session_state['user_name']}</div>", unsafe_allow_html=True)
     
+    st.markdown("<br>", unsafe_allow_html=True)
     if st.form_submit_button("GENERATE FORMAL PDF"):
-        # PDF logic follows...
+        # PDF Logic...
         st.success("Creating PDF...")
